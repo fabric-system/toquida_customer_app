@@ -18,13 +18,37 @@ export interface Me {
   email: string | null;
   phone: string | null;
   display_name: string | null;
+  full_name: string | null;
   verification_status: VerificationStatus;
+  vehicle_type?: VehicleType | null;
+  vehicle_nickname?: string | null;
+  vehicle_personality?: string | null;
+  last_wash_at?: string | null;
+}
+
+export type VehicleType = 'motor' | 'car' | 'van' | 'tricycle';
+
+export interface VerificationStep {
+  id: 'full_name' | 'rfid_tag' | 'face_enrollment' | 'vehicle_profile';
+  complete: boolean;
 }
 
 export interface VerificationDetails {
   status: VerificationStatus;
   message?: string;
   updated_at?: string;
+  steps?: VerificationStep[];
+  progress?: { completed: number; total: number };
+  all_complete?: boolean;
+  last_wash_at?: string | null;
+}
+
+export interface CompanionMessage {
+  message_id: string;
+  from_name: string;
+  body: string;
+  kind: 'wash_reminder' | 'wash_fresh';
+  created_at: string;
 }
 
 export interface Balance {

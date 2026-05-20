@@ -6,6 +6,7 @@ import type {
   Branch,
   ClaimCode,
   ClaimCreateBody,
+  CompanionMessage,
   FaceEnrollBody,
   FaceEnrollmentStatus,
   LoginBody,
@@ -115,6 +116,7 @@ async function mockRegister(body: RegisterBody): Promise<AuthTokens> {
     email: body.email?.trim() || null,
     phone: body.phone,
     display_name: body.display_name,
+    full_name: null,
     verification_status: 'unverified',
   };
   writeStoredMockUser(mockUser);
@@ -129,6 +131,7 @@ async function mockLogin(body: LoginBody): Promise<AuthTokens> {
       email: body.login.includes('@') ? body.login : null,
       phone: body.login.includes('@') ? null : body.login,
       display_name: 'Demo customer',
+      full_name: null,
       verification_status: 'verified',
     };
   }
@@ -181,7 +184,18 @@ export async function getMe(): Promise<Me> {
   return apiFetch<Me>('/me');
 }
 
-export async function patchMe(patch: Partial<Pick<Me, 'display_name'>>): Promise<Me> {
+export async function patchMe(
+  patch: Partial<
+    Pick<
+      Me,
+      | 'display_name'
+      | 'full_name'
+      | 'vehicle_type'
+      | 'vehicle_nickname'
+      | 'vehicle_personality'
+    >
+  >,
+): Promise<Me> {
   if (useMockApi) {
     await delay(250);
     if (!mockUser) mockUser = readStoredMockUser();
@@ -198,13 +212,48 @@ export async function getVerification(): Promise<VerificationDetails> {
     await delay(180);
     if (!mockUser) mockUser = readStoredMockUser();
     if (!mockUser) throw new Error('Not signed in');
+    const steps = [
+      { id: 'full_name' as const, complete: Boolean(mockUser.full_name) },
+      { id: 'rfid_tag' as const, complete: mockTags.some((t) => t.status === 'active') },
+      { id: 'face_enrollment' as const, complete: false },
+      {
+        id: 'vehicle_profile' as const,
+        complete: Boolean(
+          mockUser.vehicle_type && mockUser.vehicle_nickname && mockUser.vehicle_personality,
+        ),
+      },
+    ];
+    const completed = steps.filter((s) => s.complete).length;
     return {
       status: mockUser.verification_status,
-      message: 'Mock data — connect a real backend with `VITE_USE_MOCK_API=false`.',
+      message: `Complete ${completed} of ${steps.length} steps (mock).`,
       updated_at: new Date().toISOString(),
+      steps,
+      progress: { completed, total: steps.length },
+      all_complete: completed === steps.length,
     };
   }
   return apiFetch<VerificationDetails>('/me/verification');
+}
+
+export async function getCompanionMessages(): Promise<CompanionMessage[]> {
+  if (useMockApi) {
+    await delay(160);
+    if (!mockUser?.vehicle_nickname) return [];
+    return [
+      {
+        message_id: 'cmp_mock_1',
+        from_name: mockUser.vehicle_nickname,
+        body: `Hi ${mockUser.display_name ?? 'friend'}, kailan mo ba ako ulit lilinisan? Parang ang dumi-dumi ko na 😢`,
+        kind: 'wash_reminder',
+        created_at: new Date().toISOString(),
+      },
+    ];
+  }
+  const rows = await apiFetch<CompanionMessage[] | { items?: CompanionMessage[] }>(
+    '/me/companion-messages',
+  );
+  return Array.isArray(rows) ? rows : rows.items ?? [];
 }
 
 export async function getBalance(): Promise<Balance> {
