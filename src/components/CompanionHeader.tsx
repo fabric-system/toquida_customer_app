@@ -1,13 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import * as backend from '../api/backend';
 import { appName } from '../config';
 import { useAuth } from '../auth/useAuth';
-import { MarqueeText } from './MarqueeText';
+import { MarqueeRotator } from './MarqueeRotator';
 
 export function CompanionHeader() {
   const navFn = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
+  const isHome = location.pathname === '/home';
 
   const vq = useQuery({
     queryKey: ['verification'],
@@ -24,11 +26,16 @@ export function CompanionHeader() {
 
   const vehicleName = user?.vehicle_nickname?.trim();
   const showCompanion = Boolean(vq.data?.all_complete && vehicleName);
-  const preview = companionQ.data?.messages?.[0];
+  const messageBodies = (companionQ.data?.messages ?? []).map((m) => m.body);
+  const hasMessages = messageBodies.length > 0;
 
   function onClick() {
-    if (showCompanion && preview) {
+    if (showCompanion && hasMessages) {
       navFn('/profile#companion-messages');
+      return;
+    }
+    if (showCompanion) {
+      navFn('/home');
       return;
     }
     navFn('/home');
@@ -37,7 +44,7 @@ export function CompanionHeader() {
   if (!showCompanion) {
     return (
       <header className="app-topbar">
-        <button type="button" className="app-brand" onClick={onClick}>
+        <button type="button" className="app-brand" onClick={() => navFn('/home')}>
           <span className="app-brand-mark" aria-hidden />
           <span className="app-brand-text">{appName}</span>
         </button>
@@ -45,22 +52,33 @@ export function CompanionHeader() {
     );
   }
 
+  if (!isHome) {
+    return (
+      <header className="app-topbar">
+        <button type="button" className="app-brand" onClick={() => navFn('/home')}>
+          <span className="app-brand-mark" aria-hidden />
+          <span className="app-brand-text">{vehicleName}</span>
+        </button>
+      </header>
+    );
+  }
+
   return (
-    <header className="app-topbar">
+    <header className="app-topbar app-topbar--home-companion">
       <button
         type="button"
         className="companion-header"
         onClick={onClick}
-        aria-label={`${vehicleName}. ${preview?.body ?? 'View companion messages'}`}
+        aria-label={`${vehicleName}. ${messageBodies[0] ?? 'View companion messages'}`}
       >
         <span className="companion-header__title">
           <span className="app-brand-mark" aria-hidden />
           <span className="app-brand-text">{vehicleName}</span>
         </span>
-        {preview ? (
-          <MarqueeText text={preview.body} className="companion-header__message" />
-        ) : companionQ.isLoading ? (
+        {companionQ.isLoading ? (
           <span className="companion-header__placeholder">…</span>
+        ) : hasMessages ? (
+          <MarqueeRotator messages={messageBodies} className="companion-header__message" />
         ) : null}
       </button>
     </header>

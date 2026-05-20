@@ -544,6 +544,35 @@ a:hover {
   overflow: hidden;
 }
 
+.companion-marquee-rotator {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  min-height: 1.25rem;
+}
+
+.companion-marquee-rotator__slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+}
+
+.companion-marquee-rotator__slide--active {
+  position: relative;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.companion-marquee-rotator__slide .companion-marquee {
+  width: 100%;
+}
+
+.app-topbar--home-companion .companion-header {
+  align-items: center;
+}
+
 .companion-marquee__text {
   display: inline-block;
   white-space: nowrap;
