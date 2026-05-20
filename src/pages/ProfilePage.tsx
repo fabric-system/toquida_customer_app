@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import * as backend from '../api/backend';
 import type { VehicleType, VehicleVibeId, VerificationStep } from '../api/types';
 import { VibePicker } from '../components/VibePicker';
@@ -41,6 +41,7 @@ const STEP_META: Record<
 export function ProfilePage() {
   const { user, refreshMe } = useAuth();
   const qc = useQueryClient();
+  const location = useLocation();
 
   const [nickname, setNickname] = useState(user?.display_name ?? '');
   const [fullName, setFullName] = useState(user?.full_name ?? '');
@@ -82,6 +83,14 @@ export function ProfilePage() {
     enabled: Boolean(vq.data?.all_complete),
     refetchInterval: 60000,
   });
+
+  useEffect(() => {
+    if (location.hash !== '#companion-messages') return;
+    const el = document.getElementById('companion-messages');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [location.hash, companionQ.data?.messages]);
 
   const save = useMutation({
     mutationFn: () =>
@@ -265,14 +274,13 @@ export function ProfilePage() {
       </form>
 
       {vq.data?.all_complete ? (
-        <section className="card card--elevated companion-card">
+        <section id="companion-messages" className="card card--elevated companion-card">
           <div className="companion-card__head">
-            <h2 className="card-title">Companion messages</h2>
+            <h2 className="card-title">All messages</h2>
             <span className={`ai-badge${aiEnabled ? ' ai-badge--on' : ''}`}>
               {aiEnabled ? 'AI' : 'Templates'}
             </span>
           </div>
-          <p className="muted fineprint">From {vehicleDisplayName}</p>
 
           {companionQ.isLoading ? (
             <p className="muted fineprint">Loading messages…</p>
@@ -283,7 +291,6 @@ export function ProfilePage() {
               {companionMessages.map((msg) => (
                 <li key={msg.message_id} className="companion-list__item">
                   <div className="companion-list__meta">
-                    <p className="companion-list__from">{msg.from_name}</p>
                     {msg.source ? (
                       <span className="companion-list__source">{msg.source}</span>
                     ) : null}

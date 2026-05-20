@@ -278,7 +278,7 @@ export async function getCompanionMessages(): Promise<CompanionMessagesResponse>
         {
           message_id: 'cmp_mock_1',
           from_name: mockUser.vehicle_nickname,
-          body: `Hi ${mockUser.display_name ?? 'there'}, it's ${mockUser.vehicle_nickname}. A wash would help me feel fresh again.`,
+          body: `Uy ${mockUser.display_name ?? 'boss'}, audition ako for PinakMaduming Sasakyan — save mo naman ako sa Toquida?`,
           kind: 'wash_reminder',
           source: 'template',
           created_at: new Date().toISOString(),

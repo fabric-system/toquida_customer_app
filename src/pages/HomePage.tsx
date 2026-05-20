@@ -30,15 +30,6 @@ export function HomePage() {
     refetchOnWindowFocus: true,
   });
 
-  const companionQ = useQuery({
-    queryKey: ['companion-messages'],
-    queryFn: () => backend.getCompanionMessages(),
-    enabled: Boolean(vq.data?.all_complete),
-    refetchInterval: 60000,
-  });
-
-  const companionPreview = companionQ.data?.messages?.[0];
-
   const faceQ = useQuery({
     queryKey: ['face-enrollment'],
     queryFn: () => backend.getFaceEnrollment(),
@@ -128,20 +119,6 @@ export function HomePage() {
           <Link to="/tags">Tag details</Link>
         </div>
       </section>
-
-      {companionPreview ? (
-        <section className="card card--elevated companion-card">
-          <div className="companion-card__head">
-            <h2 className="card-title">Companion</h2>
-            {companionQ.data?.ai_enabled ? (
-              <span className="ai-badge ai-badge--on">AI</span>
-            ) : null}
-          </div>
-          <p className="companion-list__from">{companionPreview.from_name}</p>
-          <p className="companion-preview__body">{companionPreview.body}</p>
-          <Link to="/profile">View all messages</Link>
-        </section>
-      ) : null}
 
       <section className="card">
         <h2 className="card-title">Shortcuts</h2>

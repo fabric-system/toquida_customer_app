@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { appName } from '../config';
+import { CompanionHeader } from '../components/CompanionHeader';
 import { useAuth } from '../auth/useAuth';
 
 const nav: { to: string; label: string; end?: boolean }[] = [
@@ -15,12 +15,7 @@ export function AppShell() {
 
   return (
     <div className="app-shell">
-      <header className="app-topbar">
-        <button type="button" className="app-brand" onClick={() => navFn('/home')}>
-          <span className="app-brand-mark" aria-hidden />
-          <span className="app-brand-text">{appName}</span>
-        </button>
-      </header>
+      <CompanionHeader />
 
       <main className="app-main">
         <Outlet />
