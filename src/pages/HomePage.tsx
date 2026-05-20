@@ -37,6 +37,8 @@ export function HomePage() {
     refetchInterval: 60000,
   });
 
+  const companionPreview = companionQ.data?.messages?.[0];
+
   const faceQ = useQuery({
     queryKey: ['face-enrollment'],
     queryFn: () => backend.getFaceEnrollment(),
@@ -127,11 +129,17 @@ export function HomePage() {
         </div>
       </section>
 
-      {companionQ.data?.[0] ? (
-        <section className="card companion-card">
-          <h2 className="card-title">From {companionQ.data[0].from_name}</h2>
-          <p>{companionQ.data[0].body}</p>
-          <Link to="/profile">See all messages</Link>
+      {companionPreview ? (
+        <section className="card card--elevated companion-card">
+          <div className="companion-card__head">
+            <h2 className="card-title">Companion</h2>
+            {companionQ.data?.ai_enabled ? (
+              <span className="ai-badge ai-badge--on">AI</span>
+            ) : null}
+          </div>
+          <p className="companion-list__from">{companionPreview.from_name}</p>
+          <p className="companion-preview__body">{companionPreview.body}</p>
+          <Link to="/profile">View all messages</Link>
         </section>
       ) : null}
 

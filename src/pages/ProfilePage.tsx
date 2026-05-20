@@ -2,13 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as backend from '../api/backend';
-import type { VehicleType, VerificationStep } from '../api/types';
+import type { VehicleType, VehicleVibeId, VerificationStep } from '../api/types';
+import { VibePicker } from '../components/VibePicker';
 import { useAuth } from '../auth/useAuth';
 import { verificationLabel } from '../ui/format';
 
 const VEHICLE_OPTIONS: { value: VehicleType; label: string }[] = [
-  { value: 'motor', label: 'Motor' },
-  { value: 'car', label: 'Kotse' },
+  { value: 'motor', label: 'Motorcycle' },
+  { value: 'car', label: 'Car' },
   { value: 'van', label: 'Van' },
   { value: 'tricycle', label: 'Tricycle' },
 ];
@@ -19,21 +20,21 @@ const STEP_META: Record<
 > = {
   full_name: {
     title: 'Full name',
-    hint: 'Ilagay ang buong pangalan mo sa form sa ibaba.',
+    hint: 'Enter your legal name below.',
   },
   rfid_tag: {
     title: 'Linked RFID tag',
-    hint: 'I-claim at i-link ang tag mo sa kiosk.',
+    hint: 'Claim and link your tag at the kiosk.',
     href: '/tags',
   },
   face_enrollment: {
     title: 'Face enrollment',
-    hint: 'I-enroll ang mukha mo sa app, tapos i-claim sa kiosk.',
+    hint: 'Enroll your face in the app, then claim at the kiosk.',
     href: '/face',
   },
   vehicle_profile: {
     title: 'Vehicle profile',
-    hint: 'I-set ang type, nickname, at personality ng sasakyan mo.',
+    hint: 'Set type, brand, model, nickname, and vibe.',
   },
 };
 
@@ -46,18 +47,28 @@ export function ProfilePage() {
   const [vehicleType, setVehicleType] = useState<VehicleType | ''>(
     (user?.vehicle_type as VehicleType) ?? '',
   );
+  const [vehicleBrand, setVehicleBrand] = useState(user?.vehicle_brand ?? '');
+  const [vehicleModel, setVehicleModel] = useState(user?.vehicle_model ?? '');
   const [vehicleNickname, setVehicleNickname] = useState(user?.vehicle_nickname ?? '');
-  const [vehiclePersonality, setVehiclePersonality] = useState(
-    user?.vehicle_personality ?? '',
+  const [vehicleVibe, setVehicleVibe] = useState<VehicleVibeId | ''>(
+    (user?.vehicle_vibe as VehicleVibeId) ?? '',
   );
 
   useEffect(() => {
     setNickname(user?.display_name ?? '');
     setFullName(user?.full_name ?? '');
     setVehicleType((user?.vehicle_type as VehicleType) ?? '');
+    setVehicleBrand(user?.vehicle_brand ?? '');
+    setVehicleModel(user?.vehicle_model ?? '');
     setVehicleNickname(user?.vehicle_nickname ?? '');
-    setVehiclePersonality(user?.vehicle_personality ?? '');
+    setVehicleVibe((user?.vehicle_vibe as VehicleVibeId) ?? '');
   }, [user]);
+
+  const vibesQ = useQuery({
+    queryKey: ['vehicle-vibes'],
+    queryFn: () => backend.getVehicleVibes(),
+    staleTime: 600000,
+  });
 
   const vq = useQuery({
     queryKey: ['verification'],
@@ -78,8 +89,10 @@ export function ProfilePage() {
         display_name: nickname.trim() || null,
         full_name: fullName.trim() || null,
         vehicle_type: vehicleType || null,
+        vehicle_brand: vehicleBrand.trim() || null,
+        vehicle_model: vehicleModel.trim() || null,
         vehicle_nickname: vehicleNickname.trim() || null,
-        vehicle_personality: vehiclePersonality.trim() || null,
+        vehicle_vibe: vehicleVibe || null,
       }),
     onSuccess: async () => {
       await refreshMe();
@@ -99,23 +112,29 @@ export function ProfilePage() {
       ? Math.round((progress.completed / progress.total) * 100)
       : 0;
 
+  const companionMessages = companionQ.data?.messages ?? [];
+  const aiEnabled = companionQ.data?.ai_enabled ?? false;
+  const vehicleDisplayName = vehicleNickname.trim() || 'your vehicle';
+
   return (
     <div className="page page--padded">
-      <h1 className="page-title">Profile</h1>
-      <p className="muted page-lead">
-        Kumpletuhin ang lahat ng steps para maging fully verified. Ang vehicle nickname mo ang
-        magse-send ng personalized reminders.
-      </p>
+      <header className="page-header">
+        <h1 className="page-title">Profile</h1>
+        <p className="muted page-lead">
+          Complete all steps to become fully verified. Your vehicle companion sends personalized
+          wash reminders in the vibe you choose.
+        </p>
+      </header>
 
-      <section className="card">
-        <h2 className="card-title">Verification progress</h2>
+      <section className="card card--elevated">
+        <h2 className="card-title">Verification</h2>
         <p className="fineprint">{verificationLabel(vq.data?.status ?? user?.verification_status)}</p>
         {vq.data?.message ? <p className="muted fineprint">{vq.data.message}</p> : null}
         <div className="verify-progress" aria-hidden>
           <div className="verify-progress__bar" style={{ width: `${pct}%` }} />
         </div>
         <p className="muted fineprint">
-          {progress ? `${progress.completed} / ${progress.total} complete` : 'Loading…'}
+          {progress ? `${progress.completed} of ${progress.total} complete` : 'Loading…'}
         </p>
         <ul className="verify-steps">
           {(vq.data?.steps ?? []).map((step) => {
@@ -133,7 +152,7 @@ export function ProfilePage() {
                   <p className="muted fineprint">{meta.hint}</p>
                   {!step.complete && meta.href ? (
                     <Link to={meta.href} className="verify-steps__link">
-                      Go complete →
+                      Complete step →
                     </Link>
                   ) : null}
                 </div>
@@ -143,8 +162,8 @@ export function ProfilePage() {
         </ul>
       </section>
 
-      <form key={user?.user_id ?? 'profile'} className="stack gap-md card" onSubmit={onSubmit}>
-        <h2 className="card-title">Account details</h2>
+      <form key={user?.user_id ?? 'profile'} className="stack gap-md card card--elevated" onSubmit={onSubmit}>
+        <h2 className="card-title">Account</h2>
         <label className="field">
           <span className="field-label">Nickname</span>
           <input
@@ -152,7 +171,7 @@ export function ProfilePage() {
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             autoComplete="nickname"
-            placeholder="How we greet you (e.g. Choi)"
+            placeholder="How we greet you"
           />
         </label>
         <label className="field">
@@ -162,25 +181,26 @@ export function ProfilePage() {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             autoComplete="name"
-            placeholder="Buong pangalan mo"
+            placeholder="Legal name"
           />
         </label>
 
-        <h2 className="card-title" style={{ marginTop: '0.5rem' }}>
-          Your vehicle
-        </h2>
+        <div className="section-divider" aria-hidden />
+
+        <h2 className="card-title">Vehicle</h2>
         <p className="muted fineprint">
-          Si <strong>{vehicleNickname.trim() || 'your vehicle'}</strong> ang magme-message sa iyo
-          based sa personality na ilalagay mo.
+          <strong>{vehicleDisplayName}</strong> will send reminders based on your selected vibe
+          {aiEnabled ? ' · AI-powered' : ' · Smart templates'}.
         </p>
+
         <label className="field">
-          <span className="field-label">Vehicle type</span>
+          <span className="field-label">Type</span>
           <select
-            className="input"
+            className="input input--select"
             value={vehicleType}
             onChange={(e) => setVehicleType(e.target.value as VehicleType | '')}
           >
-            <option value="">Select type…</option>
+            <option value="">Select type</option>
             {VEHICLE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
@@ -188,30 +208,48 @@ export function ProfilePage() {
             ))}
           </select>
         </label>
+
+        <div className="field-row">
+          <label className="field">
+            <span className="field-label">Brand</span>
+            <input
+              className="input"
+              value={vehicleBrand}
+              onChange={(e) => setVehicleBrand(e.target.value)}
+              placeholder="e.g. Toyota"
+              autoComplete="organization"
+            />
+          </label>
+          <label className="field">
+            <span className="field-label">Model</span>
+            <input
+              className="input"
+              value={vehicleModel}
+              onChange={(e) => setVehicleModel(e.target.value)}
+              placeholder="e.g. Vios"
+            />
+          </label>
+        </div>
+
         <label className="field">
-          <span className="field-label">Vehicle nickname</span>
+          <span className="field-label">Nickname</span>
           <input
             className="input"
             value={vehicleNickname}
             onChange={(e) => setVehicleNickname(e.target.value)}
-            placeholder="e.g. Maria"
+            placeholder="What your vehicle is called"
           />
-        </label>
-        <label className="field">
-          <span className="field-label">Personality / vibe</span>
-          <textarea
-            className="input input--textarea"
-            rows={3}
-            value={vehiclePersonality}
-            onChange={(e) => setVehiclePersonality(e.target.value)}
-            placeholder="e.g. sexy, malambing, masungit, sweet…"
-          />
-          <span className="muted fineprint">
-            Describe how your vehicle “talks” — gagamitin ito ng AI companion sa notifications.
-          </span>
+          <span className="muted fineprint">This name appears in companion messages.</span>
         </label>
 
-        <button type="submit" className="btn btn--primary" disabled={save.isPending}>
+        <VibePicker
+          vibes={vibesQ.data ?? []}
+          value={vehicleVibe}
+          onChange={setVehicleVibe}
+          loading={vibesQ.isLoading}
+        />
+
+        <button type="submit" className="btn btn--primary btn--full" disabled={save.isPending}>
           {save.isPending ? 'Saving…' : 'Save profile'}
         </button>
         {save.isError ? (
@@ -221,26 +259,36 @@ export function ProfilePage() {
         ) : null}
         {save.isSuccess ? (
           <p className="banner banner--ok" role="status">
-            Saved.
+            Profile saved.
           </p>
         ) : null}
       </form>
 
       {vq.data?.all_complete ? (
-        <section className="card companion-card">
-          <h2 className="card-title">
-            Messages from {vehicleNickname.trim() || 'your vehicle'}
-          </h2>
+        <section className="card card--elevated companion-card">
+          <div className="companion-card__head">
+            <h2 className="card-title">Companion messages</h2>
+            <span className={`ai-badge${aiEnabled ? ' ai-badge--on' : ''}`}>
+              {aiEnabled ? 'AI' : 'Templates'}
+            </span>
+          </div>
+          <p className="muted fineprint">From {vehicleDisplayName}</p>
+
           {companionQ.isLoading ? (
             <p className="muted fineprint">Loading messages…</p>
-          ) : !companionQ.data?.length ? (
+          ) : !companionMessages.length ? (
             <p className="muted fineprint">No messages right now.</p>
           ) : (
             <ul className="companion-list">
-              {companionQ.data.map((msg) => (
+              {companionMessages.map((msg) => (
                 <li key={msg.message_id} className="companion-list__item">
-                  <p className="companion-list__from">{msg.from_name}</p>
-                  <p>{msg.body}</p>
+                  <div className="companion-list__meta">
+                    <p className="companion-list__from">{msg.from_name}</p>
+                    {msg.source ? (
+                      <span className="companion-list__source">{msg.source}</span>
+                    ) : null}
+                  </div>
+                  <p className="companion-list__body">{msg.body}</p>
                   <time className="muted fineprint">
                     {new Date(msg.created_at).toLocaleString()}
                   </time>
@@ -248,13 +296,15 @@ export function ProfilePage() {
               ))}
             </ul>
           )}
+
           {vq.data.last_wash_at ? (
             <p className="muted fineprint">
-              Last wash: {new Date(vq.data.last_wash_at).toLocaleString()}
+              Last wash · {new Date(vq.data.last_wash_at).toLocaleString()}
             </p>
           ) : (
             <p className="muted fineprint">
-              Last wash: wala pa — auto-update pag nag-carwash ka sa kiosk gamit ang linked tag.
+              Last wash · not recorded yet. Updates automatically when you wash at the kiosk with
+              your linked tag.
             </p>
           )}
         </section>

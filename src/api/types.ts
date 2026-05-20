@@ -13,6 +13,16 @@ export interface AuthTokens {
   expires_in?: number;
 }
 
+export type VehicleType = 'motor' | 'car' | 'van' | 'tricycle';
+
+export type VehicleVibeId = 'warm' | 'playful' | 'professional' | 'bold' | 'calm' | 'witty';
+
+export interface VehicleVibe {
+  id: VehicleVibeId;
+  label: string;
+  description: string;
+}
+
 export interface Me {
   user_id: string;
   email: string | null;
@@ -21,12 +31,12 @@ export interface Me {
   full_name: string | null;
   verification_status: VerificationStatus;
   vehicle_type?: VehicleType | null;
+  vehicle_brand?: string | null;
+  vehicle_model?: string | null;
   vehicle_nickname?: string | null;
-  vehicle_personality?: string | null;
+  vehicle_vibe?: VehicleVibeId | null;
   last_wash_at?: string | null;
 }
-
-export type VehicleType = 'motor' | 'car' | 'van' | 'tricycle';
 
 export interface VerificationStep {
   id: 'full_name' | 'rfid_tag' | 'face_enrollment' | 'vehicle_profile';
@@ -48,7 +58,13 @@ export interface CompanionMessage {
   from_name: string;
   body: string;
   kind: 'wash_reminder' | 'wash_fresh';
+  source?: 'ai' | 'template';
   created_at: string;
+}
+
+export interface CompanionMessagesResponse {
+  messages: CompanionMessage[];
+  ai_enabled: boolean;
 }
 
 export interface Balance {

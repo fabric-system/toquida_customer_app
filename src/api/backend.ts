@@ -7,6 +7,7 @@ import type {
   ClaimCode,
   ClaimCreateBody,
   CompanionMessage,
+  CompanionMessagesResponse,
   FaceEnrollBody,
   FaceEnrollmentStatus,
   LoginBody,
@@ -15,6 +16,7 @@ import type {
   SupportMessage,
   Tag,
   Transaction,
+  VehicleVibe,
   VerificationDetails,
 } from './types';
 
@@ -191,8 +193,10 @@ export async function patchMe(
       | 'display_name'
       | 'full_name'
       | 'vehicle_type'
+      | 'vehicle_brand'
+      | 'vehicle_model'
       | 'vehicle_nickname'
-      | 'vehicle_personality'
+      | 'vehicle_vibe'
     >
   >,
 ): Promise<Me> {
@@ -219,7 +223,11 @@ export async function getVerification(): Promise<VerificationDetails> {
       {
         id: 'vehicle_profile' as const,
         complete: Boolean(
-          mockUser.vehicle_type && mockUser.vehicle_nickname && mockUser.vehicle_personality,
+          mockUser.vehicle_type &&
+            mockUser.vehicle_brand &&
+            mockUser.vehicle_model &&
+            mockUser.vehicle_nickname &&
+            mockUser.vehicle_vibe,
         ),
       },
     ];
@@ -236,24 +244,58 @@ export async function getVerification(): Promise<VerificationDetails> {
   return apiFetch<VerificationDetails>('/me/verification');
 }
 
-export async function getCompanionMessages(): Promise<CompanionMessage[]> {
+export async function getVehicleVibes(): Promise<VehicleVibe[]> {
+  const fallback: VehicleVibe[] = [
+    { id: 'warm', label: 'Warm', description: 'Friendly, caring reminders with a personal touch.' },
+    { id: 'playful', label: 'Playful', description: 'Light and upbeat — keeps wash reminders cheerful.' },
+    { id: 'professional', label: 'Professional', description: 'Clear, polite, and concise service updates.' },
+    { id: 'bold', label: 'Bold', description: 'Direct and confident — gets straight to the point.' },
+    { id: 'calm', label: 'Calm', description: 'Soft, low-pressure reminders without urgency.' },
+    { id: 'witty', label: 'Witty', description: 'Clever and charming — still respectful.' },
+  ];
+  if (useMockApi) {
+    await delay(120);
+    return fallback;
+  }
+  try {
+    const data = await apiFetch<{ items?: VehicleVibe[] } | VehicleVibe[]>('/me/vehicle-vibes');
+    const items = Array.isArray(data) ? data : data.items ?? [];
+    return items.length ? items : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function getCompanionMessages(): Promise<CompanionMessagesResponse> {
   if (useMockApi) {
     await delay(160);
-    if (!mockUser?.vehicle_nickname) return [];
-    return [
-      {
-        message_id: 'cmp_mock_1',
-        from_name: mockUser.vehicle_nickname,
-        body: `Hi ${mockUser.display_name ?? 'friend'}, kailan mo ba ako ulit lilinisan? Parang ang dumi-dumi ko na 😢`,
-        kind: 'wash_reminder',
-        created_at: new Date().toISOString(),
-      },
-    ];
+    if (!mockUser?.vehicle_nickname) {
+      return { messages: [], ai_enabled: false };
+    }
+    return {
+      ai_enabled: false,
+      messages: [
+        {
+          message_id: 'cmp_mock_1',
+          from_name: mockUser.vehicle_nickname,
+          body: `Hi ${mockUser.display_name ?? 'there'}, it's ${mockUser.vehicle_nickname}. A wash would help me feel fresh again.`,
+          kind: 'wash_reminder',
+          source: 'template',
+          created_at: new Date().toISOString(),
+        },
+      ],
+    };
   }
-  const rows = await apiFetch<CompanionMessage[] | { items?: CompanionMessage[] }>(
+  const data = await apiFetch<CompanionMessagesResponse | CompanionMessage[]>(
     '/me/companion-messages',
   );
-  return Array.isArray(rows) ? rows : rows.items ?? [];
+  if (Array.isArray(data)) {
+    return { messages: data, ai_enabled: false };
+  }
+  return {
+    messages: data.messages ?? [],
+    ai_enabled: Boolean(data.ai_enabled),
+  };
 }
 
 export async function getBalance(): Promise<Balance> {
