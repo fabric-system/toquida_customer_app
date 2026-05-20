@@ -81,7 +81,7 @@ export function ProfilePage() {
     queryKey: ['companion-messages'],
     queryFn: () => backend.getCompanionMessages(),
     enabled: Boolean(vq.data?.all_complete),
-    refetchInterval: 60000,
+    refetchInterval: 3600000,
   });
 
   useEffect(() => {
@@ -122,8 +122,8 @@ export function ProfilePage() {
       : 0;
 
   const companionMessages = companionQ.data?.messages ?? [];
-  const aiEnabled = companionQ.data?.ai_enabled ?? false;
   const vehicleDisplayName = vehicleNickname.trim() || 'your vehicle';
+  const messagesUpdatedAt = companionQ.data?.messages_updated_at;
 
   return (
     <div className="page page--padded">
@@ -198,8 +198,7 @@ export function ProfilePage() {
 
         <h2 className="card-title">Vehicle</h2>
         <p className="muted fineprint">
-          <strong>{vehicleDisplayName}</strong> will send reminders based on your selected vibe
-          {aiEnabled ? ' · AI-powered' : ' · Smart templates'}.
+          <strong>{vehicleDisplayName}</strong> sends reminders based on your selected vibe.
         </p>
 
         <label className="field">
@@ -275,10 +274,7 @@ export function ProfilePage() {
 
       {vq.data?.all_complete ? (
         <section id="companion-messages" className="card card--elevated companion-card">
-          <div className="companion-card__head">
-            <h2 className="card-title">All messages</h2>
-            {aiEnabled ? <span className="ai-badge ai-badge--on">AI</span> : null}
-          </div>
+          <h2 className="card-title">Messages from {vehicleDisplayName}</h2>
 
           {companionQ.isLoading ? (
             <p className="muted fineprint">Loading messages…</p>
@@ -288,11 +284,7 @@ export function ProfilePage() {
             <ul className="companion-list">
               {companionMessages.map((msg) => (
                 <li key={msg.message_id} className="companion-list__item">
-                  <div className="companion-list__meta">
-                    {msg.source ? (
-                      <span className="companion-list__source">{msg.source}</span>
-                    ) : null}
-                  </div>
+                  <p className="companion-list__from">{msg.from_name}</p>
                   <p className="companion-list__body">{msg.body}</p>
                   <time className="muted fineprint">
                     {new Date(msg.created_at).toLocaleString()}
@@ -301,6 +293,16 @@ export function ProfilePage() {
               ))}
             </ul>
           )}
+
+          {messagesUpdatedAt ? (
+            <p className="muted fineprint">
+              Updated · {new Date(messagesUpdatedAt).toLocaleString()}
+            </p>
+          ) : null}
+          <p className="muted fineprint">
+            New messages after you save profile changes, record a wash at the kiosk, or about once
+            per hour.
+          </p>
 
           {vq.data.last_wash_at ? (
             <p className="muted fineprint">

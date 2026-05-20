@@ -19,7 +19,7 @@ export function CompanionHeader() {
     queryKey: ['companion-messages'],
     queryFn: () => backend.getCompanionMessages(),
     enabled: Boolean(vq.data?.all_complete),
-    refetchInterval: 60000,
+    refetchInterval: 3600000,
   });
 
   const vehicleName = user?.vehicle_nickname?.trim();

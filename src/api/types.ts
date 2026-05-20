@@ -58,13 +58,13 @@ export interface CompanionMessage {
   from_name: string;
   body: string;
   kind: 'wash_reminder' | 'wash_fresh';
-  source?: 'ai' | 'template';
   created_at: string;
 }
 
 export interface CompanionMessagesResponse {
   messages: CompanionMessage[];
-  ai_enabled: boolean;
+  messages_updated_at?: string | null;
+  ai_enabled?: boolean;
 }
 
 export interface Balance {

@@ -279,6 +279,7 @@ export async function getCompanionMessages(): Promise<CompanionMessagesResponse>
   }
   return {
     messages: data.messages ?? [],
+    messages_updated_at: data.messages_updated_at ?? null,
     ai_enabled: Boolean(data.ai_enabled),
   };
 }

@@ -12,7 +12,7 @@ export function VibePicker({ vibes, value, onChange, loading }: VibePickerProps)
     <div className="field">
       <span className="field-label">Vibe</span>
       <p className="muted fineprint">
-        How your vehicle companion speaks. AI uses this tone when enabled on the server.
+        How your vehicle companion speaks — tone follows the vibe you pick.
       </p>
       {loading ? (
         <p className="muted fineprint">Loading vibes…</p>
