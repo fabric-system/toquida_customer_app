@@ -1,0 +1,17 @@
+{
+  "name": "Toquida Customer",
+  "short_name": "Toquida",
+  "description": "Carwash account, balance, and kiosk claim codes.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0c0f14",
+  "theme_color": "#3d8bfd",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
