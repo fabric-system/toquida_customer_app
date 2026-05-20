@@ -269,22 +269,7 @@ export async function getVehicleVibes(): Promise<VehicleVibe[]> {
 export async function getCompanionMessages(): Promise<CompanionMessagesResponse> {
   if (useMockApi) {
     await delay(160);
-    if (!mockUser?.vehicle_nickname) {
-      return { messages: [], ai_enabled: false };
-    }
-    return {
-      ai_enabled: false,
-      messages: [
-        {
-          message_id: 'cmp_mock_1',
-          from_name: mockUser.vehicle_nickname,
-          body: `Uy ${mockUser.display_name ?? 'boss'}, audition ako for PinakMaduming Sasakyan — save mo naman ako sa Toquida?`,
-          kind: 'wash_reminder',
-          source: 'template',
-          created_at: new Date().toISOString(),
-        },
-      ],
-    };
+    return { messages: [], ai_enabled: false };
   }
   const data = await apiFetch<CompanionMessagesResponse | CompanionMessage[]>(
     '/me/companion-messages',

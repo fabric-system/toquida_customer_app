@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import * as backend from '../api/backend';
 import { appName } from '../config';
 import { useAuth } from '../auth/useAuth';
+import { MarqueeText } from './MarqueeText';
 
 export function CompanionHeader() {
   const navFn = useNavigate();
@@ -45,7 +46,7 @@ export function CompanionHeader() {
   }
 
   return (
-    <header className="app-topbar app-topbar--companion">
+    <header className="app-topbar">
       <button
         type="button"
         className="companion-header"
@@ -57,16 +58,10 @@ export function CompanionHeader() {
           <span className="app-brand-text">{vehicleName}</span>
         </span>
         {preview ? (
-          <span className="companion-header__message">{preview.body}</span>
+          <MarqueeText text={preview.body} className="companion-header__message" />
         ) : companionQ.isLoading ? (
-          <span className="companion-header__message companion-header__message--muted">
-            Loading…
-          </span>
-        ) : (
-          <span className="companion-header__message companion-header__message--muted">
-            Tap to view messages
-          </span>
-        )}
+          <span className="companion-header__placeholder">…</span>
+        ) : null}
       </button>
     </header>
   );

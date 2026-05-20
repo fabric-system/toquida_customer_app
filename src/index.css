@@ -16,7 +16,6 @@
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.04);
   --tab-h: 56px;
   --topbar-h: 52px;
-  --topbar-companion-h: 76px;
   --footer-h: 44px;
 }
 
@@ -488,19 +487,13 @@ a:hover {
   z-index: 10;
 }
 
-.app-topbar--companion {
-  height: auto;
-  min-height: var(--topbar-companion-h);
-  align-items: stretch;
-  padding: 0.55rem 0.75rem;
-}
-
 .companion-header {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.2rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
   width: 100%;
+  min-width: 0;
   background: none;
   border: none;
   color: inherit;
@@ -520,30 +513,53 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .companion-header__message {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
   font-family: 'Iowan Old Style', 'Apple Garamond', 'Palatino Linotype', Georgia, serif;
   font-style: italic;
-  font-size: 0.9rem;
-  line-height: 1.35;
+  font-size: 0.875rem;
+  line-height: 1.2;
   color: var(--text);
-  padding-left: 1.35rem;
 }
 
-.companion-header__message--muted {
+.companion-header__placeholder {
   color: var(--muted);
-  font-style: normal;
-  font-family: var(--font);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
 }
 
-.app-shell:has(.app-topbar--companion) .page {
-  min-height: calc(100dvh - var(--topbar-companion-h) - var(--tab-h) - var(--footer-h));
+.companion-marquee {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.companion-marquee__text {
+  display: inline-block;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+.companion-marquee__text--scroll {
+  max-width: none;
+  overflow: visible;
+  text-overflow: unset;
+  animation: companion-marquee-scroll linear infinite;
+}
+
+@keyframes companion-marquee-scroll {
+  0%,
+  14% {
+    transform: translateX(0);
+  }
+  86%,
+  100% {
+    transform: translateX(var(--marquee-distance, 0));
+  }
 }
 
 .app-brand {

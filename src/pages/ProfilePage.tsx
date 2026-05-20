@@ -277,9 +277,7 @@ export function ProfilePage() {
         <section id="companion-messages" className="card card--elevated companion-card">
           <div className="companion-card__head">
             <h2 className="card-title">All messages</h2>
-            <span className={`ai-badge${aiEnabled ? ' ai-badge--on' : ''}`}>
-              {aiEnabled ? 'AI' : 'Templates'}
-            </span>
+            {aiEnabled ? <span className="ai-badge ai-badge--on">AI</span> : null}
           </div>
 
           {companionQ.isLoading ? (
