@@ -12,6 +12,7 @@ export function HomePage() {
     queryFn: () => backend.getBalance(),
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
     staleTime: 0,
   });
 
@@ -61,8 +62,11 @@ export function HomePage() {
               {balanceQ.data?.unit} {balanceQ.data?.balance?.toLocaleString()}
             </p>
             <p className="muted fineprint">
-              As of {balanceQ.data?.as_of ? new Date(balanceQ.data.as_of).toLocaleString() : '—'}
-              {balanceQ.data?.stale ? ' · may be stale' : ''}
+              As of{' '}
+              {balanceQ.dataUpdatedAt
+                ? new Date(balanceQ.dataUpdatedAt).toLocaleString()
+                : '—'}
+              {balanceQ.data?.stale ? ' · balance may be stale' : ''}
             </p>
           </>
         )}
