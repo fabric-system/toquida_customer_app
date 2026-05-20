@@ -262,6 +262,15 @@ a:hover {
   background: rgba(61, 139, 253, 0.08);
 }
 
+.location-opt-in {
+  margin-top: 0.15rem;
+}
+
+.location-opt-in .field-label {
+  display: block;
+  margin-bottom: 0.2rem;
+}
+
 .checkbox-row {
   display: flex;
   align-items: flex-start;

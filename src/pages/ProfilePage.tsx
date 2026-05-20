@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import * as backend from '../api/backend';
 import type { VehicleType, VehicleVibeId, VerificationStep } from '../api/types';
 import { VibePicker } from '../components/VibePicker';
+import { requestLocationPermission } from '../hooks/useLocationCompanion';
 import { useAuth } from '../auth/useAuth';
 import { verificationLabel } from '../ui/format';
 
@@ -54,6 +55,9 @@ export function ProfilePage() {
   const [vehicleVibe, setVehicleVibe] = useState<VehicleVibeId | ''>(
     (user?.vehicle_vibe as VehicleVibeId) ?? '',
   );
+  const [locationOptIn, setLocationOptIn] = useState(Boolean(user?.location_opt_in));
+  const [locationBusy, setLocationBusy] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
     setNickname(user?.display_name ?? '');
@@ -63,6 +67,7 @@ export function ProfilePage() {
     setVehicleModel(user?.vehicle_model ?? '');
     setVehicleNickname(user?.vehicle_nickname ?? '');
     setVehicleVibe((user?.vehicle_vibe as VehicleVibeId) ?? '');
+    setLocationOptIn(Boolean(user?.location_opt_in));
   }, [user]);
 
   const vibesQ = useQuery({
@@ -113,6 +118,27 @@ export function ProfilePage() {
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     save.mutate();
+  }
+
+  async function onLocationToggle(next: boolean) {
+    setLocationError(null);
+    setLocationBusy(true);
+    try {
+      if (next) {
+        await requestLocationPermission();
+      }
+      await backend.patchMe({ location_opt_in: next });
+      setLocationOptIn(next);
+      await refreshMe();
+      void qc.invalidateQueries({ queryKey: ['companion-messages'] });
+    } catch (err) {
+      setLocationOptIn(false);
+      setLocationError(
+        err instanceof Error ? err.message : 'Could not enable location. Check browser permission.',
+      );
+    } finally {
+      setLocationBusy(false);
+    }
   }
 
   const progress = vq.data?.progress;
@@ -256,6 +282,34 @@ export function ProfilePage() {
           onChange={setVehicleVibe}
           loading={vibesQ.isLoading}
         />
+
+        <div className="field location-opt-in">
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={locationOptIn}
+              disabled={locationBusy}
+              onChange={(e) => void onLocationToggle(e.target.checked)}
+            />
+            <span>
+              <span className="field-label">Smarter reminders with location</span>
+              <span className="muted fineprint">
+                Optional. Uses GPS while the app is open to estimate travel since your last wash
+                and when you are near a Toquida branch. Never tracked in the background on web.
+              </span>
+            </span>
+          </label>
+          {locationOptIn && user?.km_since_wash != null ? (
+            <p className="muted fineprint">
+              About {user.km_since_wash.toFixed(1)} km recorded since last wash.
+            </p>
+          ) : null}
+          {locationError ? (
+            <p className="banner banner--error" role="alert">
+              {locationError}
+            </p>
+          ) : null}
+        </div>
 
         <button type="submit" className="btn btn--primary btn--full" disabled={save.isPending}>
           {save.isPending ? 'Saving…' : 'Save profile'}

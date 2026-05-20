@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { CompanionHeader } from '../components/CompanionHeader';
+import { useLocationCompanion } from '../hooks/useLocationCompanion';
 import { useAuth } from '../auth/useAuth';
 
 const nav: { to: string; label: string; end?: boolean }[] = [
@@ -11,7 +12,8 @@ const nav: { to: string; label: string; end?: boolean }[] = [
 
 export function AppShell() {
   const navFn = useNavigate();
-  const { logout, busy } = useAuth();
+  const { logout, busy, user } = useAuth();
+  useLocationCompanion(Boolean(user?.location_opt_in));
 
   return (
     <div className="app-shell">

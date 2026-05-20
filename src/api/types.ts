@@ -36,6 +36,9 @@ export interface Me {
   vehicle_nickname?: string | null;
   vehicle_vibe?: VehicleVibeId | null;
   last_wash_at?: string | null;
+  location_opt_in?: boolean;
+  km_since_wash?: number | null;
+  last_location_at?: string | null;
 }
 
 export interface VerificationStep {
@@ -107,6 +110,18 @@ export interface Branch {
   address?: string;
   hours?: string;
   phone?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+export interface LocationUpdateResponse {
+  ok: boolean;
+  recorded_at?: string;
+  km_since_wash?: number;
+  near_branch?: boolean;
+  nearest_branch_name?: string | null;
+  distance_to_branch_km?: number | null;
+  message?: string;
 }
 
 export interface SupportMessage {

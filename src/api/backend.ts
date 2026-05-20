@@ -10,6 +10,7 @@ import type {
   CompanionMessagesResponse,
   FaceEnrollBody,
   FaceEnrollmentStatus,
+  LocationUpdateResponse,
   LoginBody,
   Me,
   RegisterBody,
@@ -94,6 +95,8 @@ const mockBranches: Branch[] = [
     name: 'Toquida Main',
     address: 'Brgy. Marcelino Memije',
     hours: 'Mon-Sun 7:00-20:00',
+    latitude: 14.3055,
+    longitude: 121.0152,
   },
 ];
 
@@ -197,6 +200,7 @@ export async function patchMe(
       | 'vehicle_model'
       | 'vehicle_nickname'
       | 'vehicle_vibe'
+      | 'location_opt_in'
     >
   >,
 ): Promise<Me> {
@@ -209,6 +213,21 @@ export async function patchMe(
     return mockUser;
   }
   return apiFetch<Me>('/me', { method: 'PATCH', body: JSON.stringify(patch) });
+}
+
+export async function postLocation(body: {
+  latitude: number;
+  longitude: number;
+  accuracy_m?: number;
+}): Promise<LocationUpdateResponse> {
+  if (useMockApi) {
+    await delay(120);
+    return { ok: true, km_since_wash: 12.5, near_branch: false, nearest_branch_name: 'Toquida Main' };
+  }
+  return apiFetch<LocationUpdateResponse>('/me/location', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 }
 
 export async function getVerification(): Promise<VerificationDetails> {
