@@ -10,6 +10,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { RegisterPage } from './pages/RegisterPage';
 import { TagsPage } from './pages/TagsPage';
 import { TransactionsPage } from './pages/TransactionsPage';
+import { VehicleCompanionPage } from './pages/VehicleCompanionPage';
 import { WelcomePage } from './pages/WelcomePage';
 import { RequireAuth } from './routes/RequireAuth';
 
@@ -35,6 +36,7 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route path="/home" element={<HomePage />} />
+          <Route path="/companion" element={<VehicleCompanionPage />} />
           <Route path="/face" element={<FaceEnrollmentPage />} />
           <Route path="/claim" element={<Navigate to="/face" replace />} />
           <Route path="/transactions" element={<TransactionsPage />} />

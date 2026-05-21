@@ -17,6 +17,19 @@ export type VehicleType = 'motor' | 'car' | 'van' | 'tricycle';
 
 export type VehicleVibeId = 'warm' | 'playful' | 'professional' | 'bold' | 'calm' | 'witty';
 
+export interface VehicleDesign {
+  primary_color: string;
+  accent_color: string;
+  finish: 'gloss' | 'matte';
+}
+
+export interface VehiclePhoto {
+  id: string;
+  data_url: string;
+  caption?: string;
+  created_at?: string;
+}
+
 export interface VehicleVibe {
   id: VehicleVibeId;
   label: string;
@@ -35,6 +48,9 @@ export interface Me {
   vehicle_model?: string | null;
   vehicle_nickname?: string | null;
   vehicle_vibe?: VehicleVibeId | null;
+  vehicle_design?: VehicleDesign | null;
+  vehicle_hero_image?: string | null;
+  vehicle_photos?: VehiclePhoto[];
   last_wash_at?: string | null;
   location_opt_in?: boolean;
   km_since_wash?: number | null;

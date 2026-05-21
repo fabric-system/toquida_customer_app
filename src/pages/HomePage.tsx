@@ -115,6 +115,7 @@ export function HomePage() {
         ) : null}
         <div className="row-links">
           <Link to="/profile">Profile & verification</Link>
+          <Link to="/companion">Vehicle companion</Link>
           <Link to="/face">Face & kiosk code</Link>
           <Link to="/tags">Tag details</Link>
         </div>

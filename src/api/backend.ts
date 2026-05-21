@@ -18,6 +18,8 @@ import type {
   Tag,
   Transaction,
   VehicleVibe,
+  VehicleDesign,
+  VehiclePhoto,
   VerificationDetails,
 } from './types';
 
@@ -202,7 +204,7 @@ export async function patchMe(
       | 'vehicle_vibe'
       | 'location_opt_in'
     >
-  >,
+  > & { vehicle_design?: VehicleDesign | null },
 ): Promise<Me> {
   if (useMockApi) {
     await delay(250);
@@ -213,6 +215,76 @@ export async function patchMe(
     return mockUser;
   }
   return apiFetch<Me>('/me', { method: 'PATCH', body: JSON.stringify(patch) });
+}
+
+function mockSvgHero(type: string, label: string): string {
+  const safe = encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240"><rect width="400" height="240" fill="#f2f2f7"/><text x="200" y="120" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#1c1c1e">${label}</text><text x="200" y="150" text-anchor="middle" font-family="sans-serif" font-size="14" fill="#8e8e93">${type}</text></svg>`,
+  );
+  return `data:image/svg+xml,${safe}`;
+}
+
+export async function generateVehicleHero(preferAi = true): Promise<Me & { hero_source?: string }> {
+  if (useMockApi) {
+    await delay(400);
+    if (!mockUser) mockUser = readStoredMockUser();
+    if (!mockUser) throw new Error('Not signed in');
+    const label = mockUser.vehicle_nickname?.trim() || mockUser.vehicle_brand || 'Vehicle';
+    mockUser = {
+      ...mockUser,
+      vehicle_hero_image: mockSvgHero(mockUser.vehicle_type ?? 'motor', label),
+    };
+    writeStoredMockUser(mockUser);
+    return { ...mockUser, hero_source: 'svg' };
+  }
+  return apiFetch<Me & { hero_source?: string }>('/me/vehicle/generate-hero', {
+    method: 'POST',
+    body: JSON.stringify({ prefer_ai: preferAi }),
+  });
+}
+
+export async function addVehiclePhoto(body: {
+  data_url: string;
+  caption?: string;
+}): Promise<Me> {
+  if (useMockApi) {
+    await delay(200);
+    if (!mockUser) mockUser = readStoredMockUser();
+    if (!mockUser) throw new Error('Not signed in');
+    const photos: VehiclePhoto[] = [...(mockUser.vehicle_photos ?? [])];
+    if (photos.length >= 4) throw new Error('photo_limit_reached');
+    photos.push({
+      id: `mock_${Date.now()}`,
+      data_url: body.data_url,
+      caption: body.caption,
+      created_at: new Date().toISOString(),
+    });
+    mockUser = { ...mockUser, vehicle_photos: photos };
+    writeStoredMockUser(mockUser);
+    return mockUser;
+  }
+  return apiFetch<Me>('/me/vehicle/photos', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function removeVehiclePhoto(photoId: string): Promise<Me> {
+  if (useMockApi) {
+    await delay(150);
+    if (!mockUser) mockUser = readStoredMockUser();
+    if (!mockUser) throw new Error('Not signed in');
+    mockUser = {
+      ...mockUser,
+      vehicle_photos: (mockUser.vehicle_photos ?? []).filter((p) => p.id !== photoId),
+    };
+    writeStoredMockUser(mockUser);
+    return mockUser;
+  }
+  return apiFetch<Me>('/me/vehicle/photos', {
+    method: 'DELETE',
+    body: JSON.stringify({ photo_id: photoId }),
+  });
 }
 
 export async function postLocation(body: {

@@ -2,18 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import * as backend from '../api/backend';
-import type { VehicleType, VehicleVibeId, VerificationStep } from '../api/types';
-import { VibePicker } from '../components/VibePicker';
+import type { VerificationStep } from '../api/types';
 import { requestLocationPermission } from '../hooks/useLocationCompanion';
 import { useAuth } from '../auth/useAuth';
 import { verificationLabel } from '../ui/format';
-
-const VEHICLE_OPTIONS: { value: VehicleType; label: string }[] = [
-  { value: 'motor', label: 'Motorcycle' },
-  { value: 'car', label: 'Car' },
-  { value: 'van', label: 'Van' },
-  { value: 'tricycle', label: 'Tricycle' },
-];
 
 const STEP_META: Record<
   VerificationStep['id'],
@@ -34,8 +26,9 @@ const STEP_META: Record<
     href: '/face',
   },
   vehicle_profile: {
-    title: 'Vehicle profile',
-    hint: 'Set type, brand, model, nickname, and vibe.',
+    title: 'Vehicle companion',
+    hint: 'Set type, design, photos, and vibe in the Companion tab.',
+    href: '/companion',
   },
 };
 
@@ -46,15 +39,6 @@ export function ProfilePage() {
 
   const [nickname, setNickname] = useState(user?.display_name ?? '');
   const [fullName, setFullName] = useState(user?.full_name ?? '');
-  const [vehicleType, setVehicleType] = useState<VehicleType | ''>(
-    (user?.vehicle_type as VehicleType) ?? '',
-  );
-  const [vehicleBrand, setVehicleBrand] = useState(user?.vehicle_brand ?? '');
-  const [vehicleModel, setVehicleModel] = useState(user?.vehicle_model ?? '');
-  const [vehicleNickname, setVehicleNickname] = useState(user?.vehicle_nickname ?? '');
-  const [vehicleVibe, setVehicleVibe] = useState<VehicleVibeId | ''>(
-    (user?.vehicle_vibe as VehicleVibeId) ?? '',
-  );
   const [locationOptIn, setLocationOptIn] = useState(Boolean(user?.location_opt_in));
   const [locationBusy, setLocationBusy] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -62,19 +46,8 @@ export function ProfilePage() {
   useEffect(() => {
     setNickname(user?.display_name ?? '');
     setFullName(user?.full_name ?? '');
-    setVehicleType((user?.vehicle_type as VehicleType) ?? '');
-    setVehicleBrand(user?.vehicle_brand ?? '');
-    setVehicleModel(user?.vehicle_model ?? '');
-    setVehicleNickname(user?.vehicle_nickname ?? '');
-    setVehicleVibe((user?.vehicle_vibe as VehicleVibeId) ?? '');
     setLocationOptIn(Boolean(user?.location_opt_in));
   }, [user]);
-
-  const vibesQ = useQuery({
-    queryKey: ['vehicle-vibes'],
-    queryFn: () => backend.getVehicleVibes(),
-    staleTime: 600000,
-  });
 
   const vq = useQuery({
     queryKey: ['verification'],
@@ -102,11 +75,6 @@ export function ProfilePage() {
       backend.patchMe({
         display_name: nickname.trim() || null,
         full_name: fullName.trim() || null,
-        vehicle_type: vehicleType || null,
-        vehicle_brand: vehicleBrand.trim() || null,
-        vehicle_model: vehicleModel.trim() || null,
-        vehicle_nickname: vehicleNickname.trim() || null,
-        vehicle_vibe: vehicleVibe || null,
       }),
     onSuccess: async () => {
       await refreshMe();
@@ -148,7 +116,7 @@ export function ProfilePage() {
       : 0;
 
   const companionMessages = companionQ.data?.messages ?? [];
-  const vehicleDisplayName = vehicleNickname.trim() || 'your vehicle';
+  const vehicleDisplayName = user?.vehicle_nickname?.trim() || 'your vehicle';
   const messagesUpdatedAt = companionQ.data?.messages_updated_at;
 
   return (
@@ -222,66 +190,10 @@ export function ProfilePage() {
 
         <div className="section-divider" aria-hidden />
 
-        <h2 className="card-title">Vehicle</h2>
         <p className="muted fineprint">
-          <strong>{vehicleDisplayName}</strong> sends reminders based on your selected vibe.
+          Vehicle companion settings (type, photos, design, vibe) are in the{' '}
+          <Link to="/companion">Companion</Link> tab.
         </p>
-
-        <label className="field">
-          <span className="field-label">Type</span>
-          <select
-            className="input input--select"
-            value={vehicleType}
-            onChange={(e) => setVehicleType(e.target.value as VehicleType | '')}
-          >
-            <option value="">Select type</option>
-            {VEHICLE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className="field-row">
-          <label className="field">
-            <span className="field-label">Brand</span>
-            <input
-              className="input"
-              value={vehicleBrand}
-              onChange={(e) => setVehicleBrand(e.target.value)}
-              placeholder="e.g. Toyota"
-              autoComplete="organization"
-            />
-          </label>
-          <label className="field">
-            <span className="field-label">Model</span>
-            <input
-              className="input"
-              value={vehicleModel}
-              onChange={(e) => setVehicleModel(e.target.value)}
-              placeholder="e.g. Vios"
-            />
-          </label>
-        </div>
-
-        <label className="field">
-          <span className="field-label">Nickname</span>
-          <input
-            className="input"
-            value={vehicleNickname}
-            onChange={(e) => setVehicleNickname(e.target.value)}
-            placeholder="What your vehicle is called"
-          />
-          <span className="muted fineprint">This name appears in companion messages.</span>
-        </label>
-
-        <VibePicker
-          vibes={vibesQ.data ?? []}
-          value={vehicleVibe}
-          onChange={setVehicleVibe}
-          loading={vibesQ.isLoading}
-        />
 
         <div className="field location-opt-in">
           <label className="checkbox-row">

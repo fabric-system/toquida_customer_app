@@ -5,7 +5,7 @@ import { useAuth } from '../auth/useAuth';
 
 const nav: { to: string; label: string; end?: boolean }[] = [
   { to: '/home', label: 'Home', end: true },
-  { to: '/face', label: 'Face' },
+  { to: '/companion', label: 'Companion' },
   { to: '/transactions', label: 'Activity' },
   { to: '/profile', label: 'Profile' },
 ];
