@@ -20,6 +20,8 @@ import type {
   VehicleVibe,
   VehicleDesign,
   VehiclePhoto,
+  FeedPost,
+  FeedResponse,
   VerificationDetails,
 } from './types';
 
@@ -27,6 +29,7 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const MOCK_ME_KEY = 'toquida_mock_me';
 const MOCK_BAL_KEY = 'toquida_mock_balance';
+const MOCK_FEED_KEY = 'toquida_mock_feed';
 
 function readStoredMockUser(): Me | null {
   try {
@@ -373,6 +376,62 @@ export async function getCompanionMessages(): Promise<CompanionMessagesResponse>
     messages_updated_at: data.messages_updated_at ?? null,
     ai_enabled: Boolean(data.ai_enabled),
   };
+}
+
+function readMockFeed(): FeedPost[] {
+  try {
+    const raw = sessionStorage.getItem(MOCK_FEED_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as FeedPost[];
+  } catch {
+    return [];
+  }
+}
+
+function writeMockFeed(posts: FeedPost[]): void {
+  try {
+    sessionStorage.setItem(MOCK_FEED_KEY, JSON.stringify(posts));
+  } catch {
+    /* ignore */
+  }
+}
+
+export async function getFeed(): Promise<FeedResponse> {
+  if (useMockApi) {
+    await delay(120);
+    return { items: readMockFeed() };
+  }
+  return apiFetch<FeedResponse>('/me/feed');
+}
+
+export async function createFeedPost(body: {
+  body: string;
+  image_data_url?: string;
+}): Promise<FeedPost> {
+  if (useMockApi) {
+    await delay(280);
+    if (!mockUser) mockUser = readStoredMockUser();
+    const nick = mockUser?.vehicle_nickname?.trim() || 'Your stuff';
+    const post: FeedPost = {
+      post_id: `post_${Date.now()}`,
+      body: body.body.trim(),
+      image_data_url: body.image_data_url ?? null,
+      created_at: new Date().toISOString(),
+      reply: {
+        reply_id: `reply_${Date.now()}`,
+        from_name: nick,
+        body: 'Noted, boss — salamat sa update!',
+        created_at: new Date().toISOString(),
+      },
+    };
+    const posts = [post, ...readMockFeed()];
+    writeMockFeed(posts);
+    return post;
+  }
+  return apiFetch<FeedPost>('/me/feed/posts', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
 }
 
 export async function getBalance(): Promise<Balance> {

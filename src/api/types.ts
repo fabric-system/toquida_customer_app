@@ -86,6 +86,25 @@ export interface CompanionMessagesResponse {
   ai_enabled?: boolean;
 }
 
+export interface FeedPostReply {
+  reply_id: string;
+  from_name: string;
+  body: string;
+  created_at: string;
+}
+
+export interface FeedPost {
+  post_id: string;
+  body: string;
+  image_data_url?: string | null;
+  created_at: string;
+  reply?: FeedPostReply | null;
+}
+
+export interface FeedResponse {
+  items: FeedPost[];
+}
+
 export interface Balance {
   balance: number;
   unit: string;

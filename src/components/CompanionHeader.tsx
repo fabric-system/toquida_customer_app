@@ -40,7 +40,7 @@ export function CompanionHeader() {
 
   function openMessages() {
     if (hasMessages) {
-      navFn('/profile#companion-messages');
+      navFn('/companion#messages');
     }
   }
 

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import * as backend from '../api/backend';
 import type { VehicleDesign, VehicleType, VehicleVibeId } from '../api/types';
 import {
@@ -9,6 +9,7 @@ import {
 } from '../components/VehicleDesignPicker';
 import { VibePicker } from '../components/VibePicker';
 import { useAuth } from '../auth/useAuth';
+import { useStuffLabel } from '../hooks/useStuffLabel';
 import { fileToCompressedDataUrl } from '../utils/imageUpload';
 
 const VEHICLE_OPTIONS: { value: VehicleType; label: string }[] = [
@@ -20,6 +21,8 @@ const VEHICLE_OPTIONS: { value: VehicleType; label: string }[] = [
 
 export function VehicleCompanionPage() {
   const { user, refreshMe } = useAuth();
+  const { tabLabel: pageTitle, hasNamedStuff, nickname } = useStuffLabel();
+  const location = useLocation();
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -61,6 +64,19 @@ export function VehicleCompanionPage() {
     enabled: Boolean(vehicleNickname.trim() && vehicleType && vehicleVibe),
     refetchInterval: 3600000,
   });
+
+  const vq = useQuery({
+    queryKey: ['verification'],
+    queryFn: () => backend.getVerification(),
+  });
+
+  useEffect(() => {
+    if (location.hash !== '#messages') return;
+    const el = document.getElementById('stuff-messages');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [location.hash, companionQ.data?.messages]);
 
   const save = useMutation({
     mutationFn: () =>
@@ -132,24 +148,27 @@ export function VehicleCompanionPage() {
     }
   }
 
-  const displayName = vehicleNickname.trim() || 'Your vehicle';
+  const heroLabel = nickname || vehicleNickname.trim() || 'your vehicle';
   const photos = user?.vehicle_photos ?? [];
-  const previewMessages = companionQ.data?.messages?.slice(0, 2) ?? [];
+  const companionMessages = companionQ.data?.messages ?? [];
+  const messagesUpdatedAt = companionQ.data?.messages_updated_at;
+  const vehicleDisplayName = nickname || vehicleNickname.trim() || 'your stuff';
 
   return (
     <div className="page page--padded">
       <header className="page-header">
-        <h1 className="page-title">{displayName}</h1>
+        <h1 className="page-title">{pageTitle}</h1>
         <p className="muted page-lead">
-          Set up your vehicle companion — customize colors, add photos, and auto-generate a hero
-          image from your vehicle type.
+          {hasNamedStuff
+            ? `Customize ${nickname} — colors, photos, and a hero image from your vehicle type.`
+            : 'Set up your stuff — add vehicle details, photos, design, and a nickname to finish verification.'}
         </p>
       </header>
 
       <section className="card card--elevated vehicle-hero-card">
         <div className="vehicle-hero-card__frame">
           {heroImage ? (
-            <img src={heroImage} alt={`${displayName} preview`} className="vehicle-hero-card__img" />
+            <img src={heroImage} alt={`${heroLabel} preview`} className="vehicle-hero-card__img" />
           ) : (
             <div className="vehicle-hero-card__empty muted">
               {vehicleType
@@ -262,7 +281,7 @@ export function VehicleCompanionPage() {
             onChange={(e) => setVehicleNickname(e.target.value)}
             placeholder="What your vehicle is called"
           />
-          <span className="muted fineprint">Shown in the app header and companion messages.</span>
+          <span className="muted fineprint">Shown in the app header and in messages from your stuff.</span>
         </label>
 
         <VibePicker
@@ -275,7 +294,7 @@ export function VehicleCompanionPage() {
         <VehicleDesignPicker value={design} onChange={setDesign} />
 
         <button type="submit" className="btn btn--primary btn--full" disabled={save.isPending}>
-          {save.isPending ? 'Saving…' : 'Save companion'}
+          {save.isPending ? 'Saving…' : 'Save'}
         </button>
         {save.isError ? (
           <p className="banner banner--error" role="alert">
@@ -289,19 +308,46 @@ export function VehicleCompanionPage() {
         ) : null}
       </form>
 
-      {previewMessages.length ? (
-        <section className="card card--elevated companion-card">
-          <h2 className="card-title">Recent messages</h2>
-          <ul className="companion-list">
-            {previewMessages.map((msg) => (
-              <li key={msg.message_id} className="companion-list__item">
-                <p className="companion-list__body">{msg.body}</p>
-              </li>
-            ))}
-          </ul>
-          <Link to="/profile#companion-messages" className="verify-steps__link">
-            View all messages →
-          </Link>
+      {hasNamedStuff ? (
+        <section id="stuff-messages" className="card card--elevated companion-card">
+          <h2 className="card-title">Messages from {vehicleDisplayName}</h2>
+
+          {companionQ.isLoading ? (
+            <p className="muted fineprint">Loading messages…</p>
+          ) : !companionMessages.length ? (
+            <p className="muted fineprint">No messages right now.</p>
+          ) : (
+            <ul className="companion-list">
+              {companionMessages.map((msg) => (
+                <li key={msg.message_id} className="companion-list__item">
+                  <p className="companion-list__from">{msg.from_name}</p>
+                  <p className="companion-list__body">{msg.body}</p>
+                  <time className="muted fineprint">
+                    {new Date(msg.created_at).toLocaleString()}
+                  </time>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {messagesUpdatedAt ? (
+            <p className="muted fineprint">
+              Updated · {new Date(messagesUpdatedAt).toLocaleString()}
+            </p>
+          ) : null}
+          <p className="muted fineprint">
+            New messages after you save changes, record a wash at the kiosk, or about once per hour.
+          </p>
+
+          {vq.data?.last_wash_at ? (
+            <p className="muted fineprint">
+              Last wash · {new Date(vq.data.last_wash_at).toLocaleString()}
+            </p>
+          ) : (
+            <p className="muted fineprint">
+              Last wash · not recorded yet. Updates when you wash at the kiosk with your linked tag.
+            </p>
+          )}
         </section>
       ) : null}
     </div>

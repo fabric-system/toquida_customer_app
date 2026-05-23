@@ -675,6 +675,7 @@ a:hover {
 
 .app-tab {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -682,6 +683,10 @@ a:hover {
   font-weight: 600;
   color: var(--muted);
   text-decoration: none;
+  padding: 0 0.2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   border-top: 2px solid transparent;
   margin-top: -1px;
 }
@@ -1083,4 +1088,112 @@ a:hover {
   border: none;
   background: none;
   cursor: pointer;
+}
+
+.page-header--compact {
+  margin-bottom: 0.75rem;
+}
+
+.page--feed {
+  padding-bottom: 1rem;
+}
+
+.feed-banner {
+  margin-bottom: 0.75rem;
+}
+
+.feed-composer {
+  margin-bottom: 1rem;
+}
+
+.feed-composer__input {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.feed-composer__preview {
+  margin: 0;
+  position: relative;
+}
+
+.feed-composer__preview img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.feed-composer__remove-img {
+  margin-top: 0.35rem;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.feed-composer__actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.btn--sm {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.88rem;
+}
+
+.feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.feed-empty {
+  padding: 1rem;
+  margin: 0;
+}
+
+.feed-item__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.feed-item__author {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.feed-item__body {
+  margin: 0 0 0.65rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.feed-item__img {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.65rem;
+  max-height: 280px;
+  object-fit: cover;
+}
+
+.feed-item__reply {
+  margin-top: 0.65rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.feed-item__reply-from {
+  margin: 0 0 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent);
 }

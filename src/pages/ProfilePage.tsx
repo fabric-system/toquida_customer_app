@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import * as backend from '../api/backend';
 import type { VerificationStep } from '../api/types';
 import { requestLocationPermission } from '../hooks/useLocationCompanion';
+import { useStuffLabel } from '../hooks/useStuffLabel';
 import { useAuth } from '../auth/useAuth';
 import { verificationLabel } from '../ui/format';
 
@@ -26,16 +27,16 @@ const STEP_META: Record<
     href: '/face',
   },
   vehicle_profile: {
-    title: 'Vehicle companion',
-    hint: 'Set type, design, photos, and vibe in the Companion tab.',
+    title: 'My Stuff',
+    hint: 'Set type, design, photos, vibe, and nickname in the My Stuff tab.',
     href: '/companion',
   },
 };
 
 export function ProfilePage() {
   const { user, refreshMe } = useAuth();
+  const { tabLabel: stuffTabLabel } = useStuffLabel();
   const qc = useQueryClient();
-  const location = useLocation();
 
   const [nickname, setNickname] = useState(user?.display_name ?? '');
   const [fullName, setFullName] = useState(user?.full_name ?? '');
@@ -49,26 +50,20 @@ export function ProfilePage() {
     setLocationOptIn(Boolean(user?.location_opt_in));
   }, [user]);
 
+  const balanceQ = useQuery({
+    queryKey: ['balance'],
+    queryFn: () => backend.getBalance(),
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
+    staleTime: 0,
+  });
+
   const vq = useQuery({
     queryKey: ['verification'],
     queryFn: () => backend.getVerification(),
     refetchOnWindowFocus: true,
   });
-
-  const companionQ = useQuery({
-    queryKey: ['companion-messages'],
-    queryFn: () => backend.getCompanionMessages(),
-    enabled: Boolean(vq.data?.all_complete),
-    refetchInterval: 3600000,
-  });
-
-  useEffect(() => {
-    if (location.hash !== '#companion-messages') return;
-    const el = document.getElementById('companion-messages');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [location.hash, companionQ.data?.messages]);
 
   const save = useMutation({
     mutationFn: () =>
@@ -115,19 +110,40 @@ export function ProfilePage() {
       ? Math.round((progress.completed / progress.total) * 100)
       : 0;
 
-  const companionMessages = companionQ.data?.messages ?? [];
-  const vehicleDisplayName = user?.vehicle_nickname?.trim() || 'your vehicle';
-  const messagesUpdatedAt = companionQ.data?.messages_updated_at;
-
   return (
     <div className="page page--padded">
       <header className="page-header">
         <h1 className="page-title">Profile</h1>
         <p className="muted page-lead">
-          Complete all steps to become fully verified. Your vehicle companion sends personalized
-          wash reminders in the vibe you choose.
+          Account, balance, and verification. Stuff settings live in{' '}
+          <Link to="/companion">{stuffTabLabel}</Link>.
         </p>
       </header>
+
+      <section className="card card--elevated">
+        <h2 className="card-title">Balance</h2>
+        {balanceQ.isLoading ? (
+          <p className="muted">Loading balance…</p>
+        ) : balanceQ.isError ? (
+          <p className="banner banner--error">Could not load balance.</p>
+        ) : (
+          <>
+            <p className="balance-amount">
+              {balanceQ.data?.unit} {balanceQ.data?.balance?.toLocaleString()}
+            </p>
+            <p className="muted fineprint">
+              As of{' '}
+              {balanceQ.dataUpdatedAt
+                ? new Date(balanceQ.dataUpdatedAt).toLocaleString()
+                : '—'}
+              {balanceQ.data?.stale ? ' · balance may be stale' : ''}
+            </p>
+            <p className="muted fineprint">
+              Top up at the <Link to="/branches">carwash kiosk</Link>.
+            </p>
+          </>
+        )}
+      </section>
 
       <section className="card card--elevated">
         <h2 className="card-title">Verification</h2>
@@ -190,11 +206,6 @@ export function ProfilePage() {
 
         <div className="section-divider" aria-hidden />
 
-        <p className="muted fineprint">
-          Vehicle companion settings (type, photos, design, vibe) are in the{' '}
-          <Link to="/companion">Companion</Link> tab.
-        </p>
-
         <div className="field location-opt-in">
           <label className="checkbox-row">
             <input
@@ -238,50 +249,20 @@ export function ProfilePage() {
         ) : null}
       </form>
 
-      {vq.data?.all_complete ? (
-        <section id="companion-messages" className="card card--elevated companion-card">
-          <h2 className="card-title">Messages from {vehicleDisplayName}</h2>
-
-          {companionQ.isLoading ? (
-            <p className="muted fineprint">Loading messages…</p>
-          ) : !companionMessages.length ? (
-            <p className="muted fineprint">No messages right now.</p>
-          ) : (
-            <ul className="companion-list">
-              {companionMessages.map((msg) => (
-                <li key={msg.message_id} className="companion-list__item">
-                  <p className="companion-list__from">{msg.from_name}</p>
-                  <p className="companion-list__body">{msg.body}</p>
-                  <time className="muted fineprint">
-                    {new Date(msg.created_at).toLocaleString()}
-                  </time>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {messagesUpdatedAt ? (
-            <p className="muted fineprint">
-              Updated · {new Date(messagesUpdatedAt).toLocaleString()}
-            </p>
-          ) : null}
-          <p className="muted fineprint">
-            New messages after you save profile changes, record a wash at the kiosk, or about once
-            per hour.
-          </p>
-
-          {vq.data.last_wash_at ? (
-            <p className="muted fineprint">
-              Last wash · {new Date(vq.data.last_wash_at).toLocaleString()}
-            </p>
-          ) : (
-            <p className="muted fineprint">
-              Last wash · not recorded yet. Updates automatically when you wash at the kiosk with
-              your linked tag.
-            </p>
-          )}
-        </section>
-      ) : null}
+      <ul className="link-list card card--elevated">
+        <li>
+          <Link to="/transactions">Transaction history</Link>
+        </li>
+        <li>
+          <Link to="/tags">RFID tags</Link>
+        </li>
+        <li>
+          <Link to="/face">Face & kiosk code</Link>
+        </li>
+        <li>
+          <Link to="/help">Help</Link>
+        </li>
+      </ul>
     </div>
   );
 }
