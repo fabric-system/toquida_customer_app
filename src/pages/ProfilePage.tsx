@@ -3,6 +3,7 @@ import { type FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as backend from '../api/backend';
 import type { VerificationStep } from '../api/types';
+import { UserAvatar } from '../components/UserAvatar';
 import { requestLocationPermission } from '../hooks/useLocationCompanion';
 import { useStuffLabel } from '../hooks/useStuffLabel';
 import { useAuth } from '../auth/useAuth';
@@ -35,7 +36,7 @@ const STEP_META: Record<
 
 export function ProfilePage() {
   const { user, refreshMe } = useAuth();
-  const { tabLabel: stuffTabLabel } = useStuffLabel();
+  const { tabLabel: stuffTabLabel, hasNamedStuff, nickname: stuffNickname } = useStuffLabel();
   const qc = useQueryClient();
 
   const [nickname, setNickname] = useState(user?.display_name ?? '');
@@ -64,6 +65,15 @@ export function ProfilePage() {
     queryFn: () => backend.getVerification(),
     refetchOnWindowFocus: true,
   });
+
+  const companionQ = useQuery({
+    queryKey: ['companion-messages'],
+    queryFn: () => backend.getCompanionMessages(),
+    enabled: hasNamedStuff,
+    refetchInterval: 3600000,
+  });
+
+  const latestMessage = companionQ.data?.messages?.[0];
 
   const save = useMutation({
     mutationFn: () =>
@@ -141,6 +151,51 @@ export function ProfilePage() {
             <p className="muted fineprint">
               Top up at the <Link to="/branches">carwash kiosk</Link>.
             </p>
+          </>
+        )}
+      </section>
+
+      <section className="card card--elevated profile-stuff-card">
+        <h2 className="card-title">Your stuff</h2>
+        {hasNamedStuff && stuffNickname ? (
+          <>
+            <div className="profile-stuff-card__hero">
+              <UserAvatar
+                name={stuffNickname}
+                variant="stuff"
+                size="lg"
+                imageUrl={user?.vehicle_hero_image}
+              />
+              <div className="profile-stuff-card__info">
+                <p className="profile-stuff-card__name">{stuffNickname}</p>
+                <p className="muted fineprint">
+                  {[user?.vehicle_brand, user?.vehicle_model].filter(Boolean).join(' ') ||
+                    user?.vehicle_type ||
+                    'Vehicle'}
+                </p>
+              </div>
+            </div>
+            {companionQ.isLoading ? (
+              <p className="muted fineprint">Loading latest message…</p>
+            ) : latestMessage ? (
+              <blockquote className="profile-stuff-card__quote">
+                <p className="companion-list__body">{latestMessage.body}</p>
+              </blockquote>
+            ) : (
+              <p className="muted fineprint">No messages from {stuffNickname} yet.</p>
+            )}
+            <Link to="/companion#messages" className="verify-steps__link">
+              Open {stuffNickname} · messages & settings →
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className="muted fineprint">
+              Set up your stuff to get a nickname and personalized replies on your feed.
+            </p>
+            <Link to="/companion" className="verify-steps__link">
+              Set up {stuffTabLabel} →
+            </Link>
           </>
         )}
       </section>

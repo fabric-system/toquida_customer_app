@@ -2,8 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type ChangeEvent, type FormEvent, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as backend from '../api/backend';
+import { UserAvatar } from '../components/UserAvatar';
 import { useAuth } from '../auth/useAuth';
 import { useStuffLabel } from '../hooks/useStuffLabel';
+import { formatRelativeTime } from '../ui/format';
 import { fileToCompressedDataUrl } from '../utils/imageUpload';
 
 export function HomePage() {
@@ -16,6 +18,8 @@ export function HomePage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [postError, setPostError] = useState<string | null>(null);
+
+  const displayName = user?.display_name?.trim() || 'You';
 
   const feedQ = useQuery({
     queryKey: ['feed'],
@@ -90,76 +94,76 @@ export function HomePage() {
   const posts = feedQ.data?.items ?? [];
 
   return (
-    <div className="page page--padded page--feed">
-      <header className="page-header page-header--compact">
-        <h1 className="page-title">Feed</h1>
-        <p className="muted page-lead">
-          Share what you did with your stuff{nickname ? ` — ${nickname} can reply` : ''}.
-        </p>
-      </header>
-
+    <div className="page page--feed">
       {showGettingStarted ? (
-        <section className="card card--info feed-banner">
-          <p className="fineprint">
-            Finish setup to unlock AI replies —{' '}
+        <section className="feed-banner soc-card">
+          <p className="feed-banner__text">
+            Finish setup for AI replies —{' '}
             <Link to="/profile">Profile</Link>, <Link to="/companion">{stuffTabLabel}</Link>
             {!faceQ.data || faceQ.data.status !== 'enrolled' ? (
               <>
-                , <Link to="/face">Face & kiosk</Link>
+                , <Link to="/face">Face</Link>
               </>
             ) : null}
-            .
           </p>
         </section>
       ) : null}
 
-      <form className="card card--elevated feed-composer" onSubmit={onSubmit}>
-        <label className="field">
-          <span className="sr-only">Post</span>
-          <textarea
-            className="input input--textarea feed-composer__input"
-            rows={3}
-            placeholder={
-              nickname
-                ? `What did you do with ${nickname} today?`
-                : 'What did you do with your stuff today?'
-            }
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            maxLength={500}
-          />
-        </label>
+      <form className="feed-composer soc-card" onSubmit={onSubmit}>
+        <div className="feed-composer__row">
+          <UserAvatar name={displayName} size="md" />
+          <label className="feed-composer__field-wrap">
+            <span className="sr-only">Write a post</span>
+            <textarea
+              className="feed-composer__field"
+              rows={2}
+              placeholder={
+                nickname
+                  ? `Share something about ${nickname}…`
+                  : 'Share something about your stuff…'
+              }
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              maxLength={500}
+            />
+          </label>
+        </div>
+
         {imagePreview ? (
           <figure className="feed-composer__preview">
             <img src={imagePreview} alt="" />
             <button
               type="button"
-              className="feed-composer__remove-img"
+              className="feed-composer__preview-remove"
+              aria-label="Remove photo"
               onClick={() => {
                 setImagePreview(null);
                 setImageDataUrl(null);
               }}
             >
-              Remove photo
+              ×
             </button>
           </figure>
         ) : null}
-        <div className="feed-composer__actions">
+
+        <div className="feed-composer__toolbar">
           <button
             type="button"
-            className="btn btn--secondary btn--sm"
+            className="feed-toolbar-btn"
             onClick={() => fileRef.current?.click()}
           >
+            <span className="feed-toolbar-btn__icon feed-toolbar-btn__icon--photo" aria-hidden />
             Photo
           </button>
           <button
             type="submit"
-            className="btn btn--primary btn--sm"
+            className="feed-toolbar-btn feed-toolbar-btn--post"
             disabled={!draft.trim() || createPost.isPending}
           >
             {createPost.isPending ? 'Posting…' : 'Post'}
           </button>
         </div>
+
         <input
           ref={fileRef}
           type="file"
@@ -168,43 +172,65 @@ export function HomePage() {
           onChange={(e) => void onPickImage(e)}
         />
         {postError ? (
-          <p className="banner banner--error" role="alert">
+          <p className="feed-composer__error" role="alert">
             {postError}
           </p>
         ) : null}
       </form>
 
-      <section className="feed-list" aria-label="Your posts">
+      <section className="feed-stream" aria-label="Feed">
         {feedQ.isLoading ? (
-          <p className="muted fineprint">Loading feed…</p>
+          <div className="feed-skeleton soc-card" aria-hidden>
+            <div className="feed-skeleton__line feed-skeleton__line--short" />
+            <div className="feed-skeleton__line" />
+            <div className="feed-skeleton__line feed-skeleton__line--medium" />
+          </div>
         ) : !posts.length ? (
-          <p className="muted fineprint card card--elevated feed-empty">
-            No posts yet. Share an oil change, wash day, or ride —{' '}
-            {nickname ? `${nickname} may reply` : 'your stuff can reply once verified'}.
-          </p>
+          <div className="feed-empty soc-card">
+            <p className="feed-empty__title">Your feed is empty</p>
+            <p className="feed-empty__text">
+              Post a wash, ride, or maintenance update
+              {nickname ? ` — ${nickname} can reply` : ''}.
+            </p>
+          </div>
         ) : (
           posts.map((post) => (
-            <article key={post.post_id} className="card card--elevated feed-item">
-              <header className="feed-item__head">
-                <span className="feed-item__author">{user?.display_name || 'You'}</span>
-                <time className="muted fineprint">
-                  {new Date(post.created_at).toLocaleString()}
-                </time>
-              </header>
-              <p className="feed-item__body">{post.body}</p>
-              {post.image_data_url ? (
-                <img src={post.image_data_url} alt="" className="feed-item__img" />
-              ) : null}
-              {post.reply ? (
-                <div className="feed-item__reply">
-                  <p className="feed-item__reply-from">{post.reply.from_name}</p>
-                  <p className="companion-list__body">{post.reply.body}</p>
-                  <time className="muted fineprint">
-                    {new Date(post.reply.created_at).toLocaleString()}
+            <article key={post.post_id} className="feed-post soc-card">
+              <header className="feed-post__header">
+                <UserAvatar name={displayName} size="md" />
+                <div className="feed-post__meta">
+                  <span className="feed-post__name">{displayName}</span>
+                  <time className="feed-post__time" dateTime={post.created_at}>
+                    {formatRelativeTime(post.created_at)}
                   </time>
                 </div>
+              </header>
+
+              <p className="feed-post__body">{post.body}</p>
+
+              {post.image_data_url ? (
+                <div className="feed-post__media-wrap">
+                  <img src={post.image_data_url} alt="" className="feed-post__media" />
+                </div>
+              ) : null}
+
+              {post.reply ? (
+                <div className="feed-post__comments">
+                  <div className="feed-comment">
+                    <UserAvatar
+                      name={post.reply.from_name}
+                      variant="stuff"
+                      size="sm"
+                      imageUrl={user?.vehicle_hero_image}
+                    />
+                    <div className="feed-comment__bubble">
+                      <span className="feed-comment__name">{post.reply.from_name}</span>
+                      <p className="feed-comment__text">{post.reply.body}</p>
+                    </div>
+                  </div>
+                </div>
               ) : (
-                <p className="muted fineprint">Waiting for a reply…</p>
+                <p className="feed-post__pending muted">Waiting for a reply…</p>
               )}
             </article>
           ))
